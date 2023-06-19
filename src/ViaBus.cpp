@@ -12,12 +12,12 @@ bool encodeMessageData(ViaBusMessage_t* msg, const char* data, uint8_t dataLengt
 
 uint8_t computeHeaderCRC(ViaBusMessage_t* msg) {
     uint8_t crc = 0;
-    crc = CRC8(crc, msg->dst);
-    crc = CRC8(crc, msg->src);
-    crc = CRC8(crc, msg->hops);
-    crc = CRC8(crc, msg->msgType);
-    crc = CRC8(crc, msg->msgVersion);
-    crc = CRC8(crc, msg->encodedDataLength);
+    crc = CRC8_NEXT(crc, msg->dst);
+    crc = CRC8_NEXT(crc, msg->src);
+    crc = CRC8_NEXT(crc, msg->hops);
+    crc = CRC8_NEXT(crc, msg->msgType);
+    crc = CRC8_NEXT(crc, msg->msgVersion);
+    crc = CRC8_NEXT(crc, msg->encodedDataLength);
     return crc;
 }
 

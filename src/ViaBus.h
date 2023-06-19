@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <stdlib.h>
 #include "utils/cobs.h"
+#include "utils/crc8.h"
 
 
 #define VIABUS_DATA_LEN 253
@@ -11,7 +12,7 @@
 
 
 // message structure:
-// 0 | DST | SRC | HOPS | MSG_TYPE | ENC_DATA_LEN | HDR_CRC | ENC_DATA
+// 0 | DST | SRC | HOPS | MSG_TYPE | VERSION | ENC_DATA_LEN | HDR_CRC | ENC_DATA
 
 
 typedef struct ViaBusMessage {
@@ -19,6 +20,7 @@ typedef struct ViaBusMessage {
     uint8_t src;
     uint8_t hops;
     uint8_t msgType;
+    uint8_t msgVersion;
     uint8_t encodedDataLength;
     uint8_t hdrCRC;
     uint8_t encodedData[VIABUS_ENCODED_DATA_LEN];
@@ -27,9 +29,7 @@ typedef struct ViaBusMessage {
 
 bool encodeViaBusMessage(ViaBusMessage_t* msg, const char* data, uint8_t dataLength);
 
-void computeHeaderCRC(ViaBusMessage_t* msg);
-
-bool checkHeaderCRC(ViaBusMessage_t* msg);
+uint8_t computeHeaderCRC(ViaBusMessage_t* msg);
 
 /*
 void decodeMessage(ViaBusMessage_t* msg, const char* dataRaw, uint8_t dataRawLen) {
@@ -89,9 +89,6 @@ private:
     //ViaBusMessage_t msgOut;
     HardwareSerial* serialBroadcast = nullptr;
 };
-
-
-
 
 /*
 class ViaBusController: public ViaBus {

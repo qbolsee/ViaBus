@@ -1,7 +1,7 @@
 #include "ViaBus.h"
 
 
-bool encodeViaBusMessage(ViaBusMessage_t* msg, const char* data, uint8_t dataLength) {
+bool encodeMessageData(ViaBusMessage_t* msg, const char* data, uint8_t dataLength) {
     if (dataLength > VIABUS_DATA_LEN) {
         return false;
     }
@@ -10,13 +10,15 @@ bool encodeViaBusMessage(ViaBusMessage_t* msg, const char* data, uint8_t dataLen
 }
 
 
-void computeHeaderCRC(ViaBusMessage_t* msg) {
-    msg
-}
-
-
-void checkHeaderCRC(ViaBusMessage_t* msg) {
-    
+uint8_t computeHeaderCRC(ViaBusMessage_t* msg) {
+    uint8_t crc = 0;
+    crc = CRC8(crc, msg->dst);
+    crc = CRC8(crc, msg->src);
+    crc = CRC8(crc, msg->hops);
+    crc = CRC8(crc, msg->msgType);
+    crc = CRC8(crc, msg->msgVersion);
+    crc = CRC8(crc, msg->encodedDataLength);
+    return crc;
 }
 
 
@@ -52,8 +54,10 @@ void ViaBus::onMessage(void (*callback)(uint8_t address, const char* message)) {
 }
 
 
-int ViaBus::send(uint8_t address, const char* message) {
+int ViaBus::send(uint8_t address, const char* data) {
     //
+    
+    encodeMessageData
     return 0;
 }
 

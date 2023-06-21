@@ -7,8 +7,14 @@
 #include "utils/crc8.h"
 
 
-#define VIABUS_DATA_LEN 253
-#define VIABUS_ENCODED_DATA_LEN 255
+#define VIABUS_DATA_MAXLEN 253
+#define VIABUS_ENCODED_DATA_MAXLEN 255
+#define VIABUS_ENCODED_DATA_EMPTY 0x01
+#define VIABUS_HEADER_LEN 8
+
+#define VIABUS_MAXLEN (VIABUS_HEADER_LEN + VIABUS_ENCODED_DATA_MAXLEN)
+
+#define VIABUS_VERSION 1
 
 
 // message structure:
@@ -23,11 +29,11 @@ typedef struct ViaBusMessage {
     uint8_t msgVersion;
     uint8_t encodedDataLength;
     uint8_t hdrCRC;
-    uint8_t encodedData[VIABUS_ENCODED_DATA_LEN];
+    uint8_t encodedData[VIABUS_ENCODED_DATA_MAXLEN];
 } ViaBusMessage_t;
 
 
-bool encodeViaBusMessage(ViaBusMessage_t* msg, const char* data, uint8_t dataLength);
+bool encodeViaBusData(ViaBusMessage_t* msg, const char* data, uint8_t dataLength);
 
 uint8_t computeHeaderCRC(ViaBusMessage_t* msg);
 
@@ -39,77 +45,70 @@ void decodeMessage(ViaBusMessage_t* msg, const char* dataRaw, uint8_t dataRawLen
 
 class ViaBus {
 public:
-    typedef enum {
-        MSG_TYPE_REGULAR   = 1,
-        MSG_TYPE_HEARTBEAT = 2
-    } MessageType;
-
-    typedef enum {
-        REPLY_ERROR     = 0,
-        REPLY_AVAILABLE = 1,
-        REPLY_TIMEOUT   = 2
-    } ReplyStatus;
+    static const uint8_t MSG_TYPE_DATA      = 1;
+    static const uint8_t MSG_TYPE_READDRESS = 2;
+    static const uint8_t MSG_TYPE_HEARTBEAT = 3;
 
     static const uint8_t ADDR_CONTROLLER = 255;
-    static const uint8_t ADDR_UNDEFINED = 254;
-    static const uint8_t ADDR_BASE = 1;
+    static const uint8_t ADDR_UNDEFINED  = 254;
+    static const uint8_t ADDR_BASE       = 1;
 
     static const int BAUDRATE_DEFAULT     = 500;
     static const int HEARTBEAT_MS         = 800;
     static const int HEARTBEAT_TIMEOUT_MS = 2000;
-    //const int 
 
-    ViaBus(HardwareSerial* serialBroadcast);
-
-    void onMessage(void (*callback)(uint8_t address, const char* msg));
+    //ViaBus();
+    void onMessage(void (*callback)(uint8_t srcAddress, const char* data, uint8_t dataLength));
+    void onForward(void (*callback)(uint8_t srcAddress, uint8_t dstAddress, const char* data, uint8_t dataLength));
     void begin(long int baudrate=BAUDRATE_DEFAULT);
     void loop();
-    int send(uint8_t address, const char* msg);
-    //void onMessageForward(void (*callback)());
-    //void onAddressChange(void (*callback)());
+    bool send(uint8_t dstAddress, const char* data, uint8_t dataLength=0);
+
+    uint8_t getAddress();
 
 private:
-    //sendMessage(uint8_t address, uint8_t messageType)
+    void transmit(ViaBusMessage_t* msg, Stream* stream);
 
     uint8_t address = ADDR_UNDEFINED;
     long int baudrate = 0;
-
     //void serializeMessage(ViaBusMessage_t* msg, char* byteStream);
 
     int lastLoopTime     = -1;
     int lastMessageTimer =  0;
 
-    void (*onMessageCallback)(uint8_t address, const char* msg) = nullptr;
-
-    // state machine
-    char header[VIABUS_PAYLOAD_LEN];
-    char payload[VIABUS_PAYLOAD_LEN];
-    char crc = 0;
-    //ViaBusMessage_t msgIn;
-    //ViaBusMessage_t msgOut;
-    HardwareSerial* serialBroadcast = nullptr;
+    void (*onMessageCallback)(uint8_t srcAddress, const uint8_t* msg, uint8_t msgLength) = nullptr;
+    void (*onForwardCallback)(uint8_t srcAddress, uint8_t dstAddress, const uint8_t* msg, uint8_t msgLength) = nullptr;
 };
 
-/*
+
 class ViaBusController: public ViaBus {
 public:
-    ViaBusController(Stream * serial_broadcast);
+    ViaBusController(Stream* streamBroadcast);
+    uint8_t getNumberPeripherals();
 
-    int nPeripherals();
 private:
-    Stream* serial_broadcast = nullptr;
+    Stream* streamBroadcast = nullptr;
+
+    ViaBusMessage_t msgIn;
+    ViaBusMessage_t msgOut;
 }
 
 
 class ViaBusPeripheral: public ViaBus {
 public:
     ViaBusPeripheral(Stream * serialBroadcast, Stream * serialChain);
+
 private:
-    Stream* serialBroadcast = nullptr;
-    Stream* serial_chain = nullptr;
+    void sendHeartbeat();
+    void sendReaddress();
+
+    Stream* streamBroadcast = nullptr;
+    Stream* streamChain = nullptr;
 
     ViaBusMessage_t msgInBroadcast;
+    ViaBusMessage_t msgInChain;
+    ViaBusMessage_t msgOut;
 }
-*/
+
 
 #endif // VIABUS_H_
